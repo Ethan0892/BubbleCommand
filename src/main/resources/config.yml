@@ -1,0 +1,26 @@
+# BubbleCommand Configuration
+# This plugin allows you to create custom commands that execute other commands
+
+# Custom commands configuration
+# Format:
+# custom-commands:
+#   command-name:
+#     aliases: [alias1, alias2]  # Optional aliases for the command
+#     action: "command to execute"  # The command to run (without /)
+#     permission: "permission.node"  # Optional permission required
+#     description: "Command description"  # Optional description
+#     player-only: true  # Whether command is player-only (default: true)
+
+# Available placeholders:
+# %player% - Player's name
+# %uuid% - Player's UUID
+# %world% - Player's current world
+# %sender% - Command sender's name
+# %arg0%, %arg1%, etc. - Command arguments (0-indexed)
+# %args% - All arguments joined with spaces
+
+# Action prefixes:
+# "console:" - Execute as console command
+# "player:" - Execute as player command (default)
+
+custom-commands: {}

@@ -1,0 +1,31 @@
+name: BubbleCommand
+main: com.bubblecraft.BubbleCommand
+version: 1.0.0
+description: Allows users to create custom commands via config
+author: BubbleCraft
+api-version: 1.21
+softdepend: [Purpur]
+
+commands:
+  bubblecommand:
+    description: Main command for BubbleCommand plugin
+    usage: /bubblecommand <reload>
+    permission: bubblecommand.admin
+    aliases: [bcommand]
+
+permissions:
+  bubblecommand.admin:
+    description: Allows access to BubbleCommand admin commands
+    default: op
+  bubblecommand.use:
+    description: Allows use of custom commands
+    default: true
+  bubblecommand.heal:
+    description: Allows use of heal command
+    default: op
+  bubblecommand.kit.starter:
+    description: Allows use of starter kit command
+    default: true
+  bubblecommand.broadcast:
+    description: Allows use of broadcast command
+    default: op
