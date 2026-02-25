@@ -27,8 +27,14 @@ public class BubbleCommand extends JavaPlugin implements CommandExecutor, TabCom
         config = getConfig();
         
         // Register main command
-        getCommand("bubblecommand").setExecutor(this);
-        getCommand("bubblecommand").setTabCompleter(this);
+        var bubbleCmd = getCommand("bubblecommand");
+        if (bubbleCmd == null) {
+            getLogger().severe("Command 'bubblecommand' is missing from plugin.yml; disabling plugin.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        bubbleCmd.setExecutor(this);
+        bubbleCmd.setTabCompleter(this);
         
         loadCustomCommands();
         
@@ -162,95 +168,116 @@ public class BubbleCommand extends JavaPlugin implements CommandExecutor, TabCom
     
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // Handle main plugin command
-        if (command.getName().equals("bubblecommand")) {
-            if (args.length == 0) {
-                sender.sendMessage(ChatColor.GREEN + "BubbleCommand v" + getDescription().getVersion());
-                sender.sendMessage(ChatColor.YELLOW + "Use /bubblecommand reload to reload the config");
-                sender.sendMessage(ChatColor.YELLOW + "Custom commands loaded: " + customCommands.size());
-                return true;
-            }
-            
-            if (args[0].equalsIgnoreCase("reload")) {
-                if (!sender.hasPermission("bubblecommand.admin")) {
-                    sender.sendMessage(ChatColor.RED + "You don't have permission to reload the config!");
-                    return true;
-                }
-                
-                // Unregister old commands
-                unregisterCustomCommands();
-                
-                // Reload config and register new commands
-                reloadConfig();
-                config = getConfig();
-                loadCustomCommands();
-                
-                sender.sendMessage(ChatColor.GREEN + "Config reloaded! Loaded " + customCommands.size() + " custom commands.");
-                return true;
-            }
-            
-            sender.sendMessage(ChatColor.RED + "Unknown subcommand. Use: /bubblecommand reload");
-            return true;
+        if (isMainPluginCommand(command)) {
+            return handleMainPluginCommand(sender, args);
         }
-        
-        // Handle custom commands
-        String cmdName = command.getName().toLowerCase();
-        CustomCommand customCmd = customCommands.get(cmdName);
-        
-        if (customCmd == null) {
-            // Check if it's an alias
-            for (CustomCommand cmd : customCommands.values()) {
-                if (cmd.getName().equalsIgnoreCase(cmdName) || cmd.getAliases().contains(cmdName)) {
-                    customCmd = cmd;
-                    break;
-                }
-            }
-        }
-        
+
+        CustomCommand customCmd = resolveCustomCommand(command);
         if (customCmd == null) {
             sender.sendMessage(ChatColor.RED + "Unknown command!");
             return true;
         }
-        
-        // Check if player only
-        if (customCmd.isPlayerOnly() && !(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "This command can only be used by players!");
+
+        if (!validateSenderForCustomCommand(sender, customCmd)) {
             return true;
         }
-        
-        // Check permission
-        if (customCmd.getPermission() != null && !customCmd.getPermission().isEmpty()) {
-            if (!sender.hasPermission(customCmd.getPermission())) {
-                sender.sendMessage(ChatColor.RED + "You don't have permission to use this command!");
-                return true;
+
+        String action = replacePlaceholders(customCmd.getAction(), sender, args);
+        executeAction(sender, action);
+        return true;
+    }
+
+    private boolean isMainPluginCommand(Command command) {
+        return command.getName().equals("bubblecommand");
+    }
+
+    private boolean handleMainPluginCommand(CommandSender sender, String[] args) {
+        if (args.length == 0) {
+            sender.sendMessage(ChatColor.GREEN + "BubbleCommand v" + getDescription().getVersion());
+            sender.sendMessage(ChatColor.YELLOW + "Use /bubblecommand reload to reload the config");
+            sender.sendMessage(ChatColor.YELLOW + "Custom commands loaded: " + customCommands.size());
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("reload")) {
+            return handleReloadSubcommand(sender);
+        }
+
+        sender.sendMessage(ChatColor.RED + "Unknown subcommand. Use: /bubblecommand reload");
+        return true;
+    }
+
+    private boolean handleReloadSubcommand(CommandSender sender) {
+        if (!sender.hasPermission("bubblecommand.admin")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to reload the config!");
+            return true;
+        }
+
+        unregisterCustomCommands();
+
+        reloadConfig();
+        config = getConfig();
+        loadCustomCommands();
+
+        sender.sendMessage(ChatColor.GREEN + "Config reloaded! Loaded " + customCommands.size() + " custom commands.");
+        return true;
+    }
+
+    private CustomCommand resolveCustomCommand(Command command) {
+        String cmdName = command.getName().toLowerCase();
+        CustomCommand customCmd = customCommands.get(cmdName);
+        if (customCmd != null) {
+            return customCmd;
+        }
+
+        // Fallback: scan by canonical name/aliases.
+        for (CustomCommand cmd : customCommands.values()) {
+            if (cmd.getName().equalsIgnoreCase(cmdName) || cmd.getAliases().contains(cmdName)) {
+                return cmd;
             }
         }
-        
-        // Execute the action
-        String action = customCmd.getAction();
-        action = replacePlaceholders(action, sender, args);
-        
-        // Execute as console command or player command
+
+        return null;
+    }
+
+    private boolean validateSenderForCustomCommand(CommandSender sender, CustomCommand customCmd) {
+        if (customCmd.isPlayerOnly() && !(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "This command can only be used by players!");
+            return false;
+        }
+
+        String permission = customCmd.getPermission();
+        if (permission != null && !permission.isEmpty() && !sender.hasPermission(permission)) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command!");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void executeAction(CommandSender sender, String action) {
         if (action.startsWith("console:")) {
             String consoleCmd = action.substring(8).trim();
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), consoleCmd);
-        } else if (action.startsWith("player:")) {
+            return;
+        }
+
+        if (action.startsWith("player:")) {
             if (sender instanceof Player) {
                 String playerCmd = action.substring(7).trim();
                 ((Player) sender).performCommand(playerCmd);
             } else {
                 sender.sendMessage(ChatColor.RED + "This action can only be executed by players!");
             }
-        } else {
-            // Default to player command
-            if (sender instanceof Player) {
-                ((Player) sender).performCommand(action);
-            } else {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), action);
-            }
+            return;
         }
-        
-        return true;
+
+        // Default to player command.
+        if (sender instanceof Player) {
+            ((Player) sender).performCommand(action);
+        } else {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), action);
+        }
     }
     
     private String replacePlaceholders(String text, CommandSender sender, String[] args) {
@@ -279,7 +306,15 @@ public class BubbleCommand extends JavaPlugin implements CommandExecutor, TabCom
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (command.getName().equals("bubblecommand")) {
             if (args.length == 1) {
-                return Arrays.asList("reload");
+                if (!sender.hasPermission("bubblecommand.admin")) {
+                    return List.of();
+                }
+
+                String prefix = args[0] == null ? "" : args[0].toLowerCase();
+                if ("reload".startsWith(prefix)) {
+                    return List.of("reload");
+                }
+                return List.of();
             }
         }
         return new ArrayList<>();

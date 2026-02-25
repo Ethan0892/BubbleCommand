@@ -1,6 +1,6 @@
 name: BubbleCommand
 main: com.bubblecraft.BubbleCommand
-version: 1.0.0
+version: 1.0.1
 description: Allows users to create custom commands via config
 author: BubbleCraft
 api-version: 1.21
