@@ -1,26 +1,100 @@
-# BubbleCommand Configuration
-# This plugin allows you to create custom commands that execute other commands
+# BubbleCommand Configuration v2.1.2
+# Creates fully custom commands entirely from config — no coding required.
 
-# Custom commands configuration
-# Format:
-# custom-commands:
-#   command-name:
-#     aliases: [alias1, alias2]  # Optional aliases for the command
-#     action: "command to execute"  # The command to run (without /)
-#     permission: "permission.node"  # Optional permission required
-#     description: "Command description"  # Optional description
-#     player-only: true  # Whether command is player-only (default: true)
+# ─────────────────────────────────────────────────────────────────────────────
+# Debug mode
+# Enables verbose logging to console. Toggle in-game with /bubblecommand debug
+# ─────────────────────────────────────────────────────────────────────────────
+debug: false
 
-# Available placeholders:
-# %player% - Player's name
-# %uuid% - Player's UUID
-# %world% - Player's current world
-# %sender% - Command sender's name
-# %arg0%, %arg1%, etc. - Command arguments (0-indexed)
-# %args% - All arguments joined with spaces
+# ─────────────────────────────────────────────────────────────────────────────
+# Custom Commands
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# command-name:
+#   aliases: [alias1, alias2]        # Optional shortcuts for the command
+#   description: "..."               # Shown in /help
+#   permission: "node.here"          # Optional permission required
+#   no-permission-message: "&c..."   # Message shown when permission is denied
+#   player-only: true                # Restrict to players (default: true)
+#   cooldown: 0                      # Cooldown in seconds (0 = disabled)
+#   cooldown-message: "&c..."        # Supports %remaining% placeholder
+#   sound: "SOUND_NAME"              # Sound played after command runs
+#   sound-volume: 1.0
+#   sound-pitch: 1.0
+#
+#   # Single action (shorthand):
+#   action: "console: tp %player% 0 64 0"
+#
+#   # Multiple actions (run in order):
+#   actions:
+#     - "console: tp %player% 0 64 0"
+#     - "message: &aTeleported to spawn!"
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Action types:
+#   console:<cmd>          Run as console
+#   player:<cmd>           Run as the player
+#   message:<text>         Send a message to the player
+#   broadcast:<text>       Send a message to all online players
+#   title:<title>|<subtitle>|<fadeIn>|<stay>|<fadeOut>
+#                          Send a title (last 3 values are ticks, optional)
+#   actionbar:<text>       Send an action bar message
+#   sound:<NAME>:<vol>:<pitch>   Play a sound inline
+#   <cmd>                  Default: run as player
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Placeholders (work in actions, messages, titles, etc.):
+#   %player%       Player name
+#   %displayname%  Player display name
+#   %uuid%         Player UUID
+#   %world%        Current world
+#   %x% %y% %z%   Block coordinates
+#   %sender%       Command sender name
+#   %args%         All arguments joined with spaces
+#   %arg0%/%arg1%  Individual arguments (0-indexed; %arg1% also works 1-indexed)
+#   Any PlaceholderAPI placeholder (if PAPI is installed)
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Action prefixes:
-# "console:" - Execute as console command
-# "player:" - Execute as player command (default)
+custom-commands:
 
-custom-commands: {}
+  # ── Farms ─────────────────────────────────────────────────────────────────
+  # Teleports the player to the farms and plays a pling sound
+  farm:
+    aliases: [farms]
+    actions:
+      - "console: tp %player% <x> <y> <z>"
+      - "title:&a&lFarms|&7Teleporting you to the farms!|10|50|10"
+      - "actionbar: &aTeleported to &6Farms&a!"
+    sound: "BLOCK_NOTE_BLOCK_PLING"
+    sound-volume: 1.0
+    sound-pitch: 1.0
+    cooldown: 5
+    cooldown-message: "&cPlease wait &e%remaining%s &cbefore using /farm again."
+    permission: "bubblecommand.farm"
+    description: "Teleport to the farms"
+    player-only: true
+
+  # ── Heal ──────────────────────────────────────────────────────────────────
+  heal:
+    aliases: [hp]
+    actions:
+      - "console: heal %player%"
+      - "message: &a&lHealed! &7You have been fully healed."
+    sound: "ENTITY_PLAYER_LEVELUP"
+    sound-volume: 1.0
+    sound-pitch: 1.2
+    cooldown: 30
+    cooldown-message: "&cYou must wait &e%remaining%s &cbefore healing again."
+    permission: "bubblecommand.heal"
+    description: "Heals the player"
+    player-only: true
+
+  # ── Spawn ─────────────────────────────────────────────────────────────────
+  spawn:
+    aliases: [hub, lobby]
+    actions:
+      - "console: spawn %player%"
+      - "actionbar: &7Teleporting to &bSpawn&7..."
+    description: "Go to spawn"
+    player-only: true

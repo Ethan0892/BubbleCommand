@@ -1,10 +1,10 @@
 name: BubbleCommand
 main: com.bubblecraft.BubbleCommand
-version: 1.0.1
+version: 2.1.2
 description: Allows users to create custom commands via config
 author: BubbleCraft
 api-version: 1.21
-softdepend: [Purpur]
+softdepend: [Purpur, PlaceholderAPI]
 
 commands:
   bubblecommand:
